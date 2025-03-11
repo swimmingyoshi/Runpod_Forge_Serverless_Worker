@@ -52,7 +52,8 @@ def start_webui():
 
     print("Starting WebUI process...")
     os.chdir("/workspace/stable-diffusion-webui-forge")
-    WEBUI_PROCESS = subprocess.Popen(["python", "launch.py"], env=os.environ)
+    # Changed 'python' to 'python3' to match Ubuntu's executable name
+    WEBUI_PROCESS = subprocess.Popen(["python3", "launch.py"], env=os.environ)
     
     # Wait for API to become available
     max_retries = 30
