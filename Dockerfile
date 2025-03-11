@@ -33,13 +33,13 @@ RUN pip3 install runpod torch==2.0.1+cu118 torchvision==0.15.2+cu118 -f https://
 # Create directory for models
 RUN mkdir -p /workspace/stable-diffusion-webui-forge/models/Stable-diffusion
 
-# Download a model - uncomment and modify if you want to include a specific model in the container
-RUN wget -q -O /model.safetensors https://huggingface.co/Meowmeow42/NewStart/resolve/main/MAI_Pony-v1R.safetensors
-
+# Download a model directly to the correct location
+RUN wget -q -O /workspace/stable-diffusion-webui-forge/models/Stable-diffusion/MAI_Pony-v1R.safetensors \
+    https://huggingface.co/Meowmeow42/NewStart/resolve/main/MAI_Pony-v1R.safetensors
 
 # Install dependencies for WebUI Forge
 WORKDIR /workspace/stable-diffusion-webui-forge
-RUN pip3 install -r requirements.txt
+RUN pip3 install -r requirements_versions.txt
 
 # Configure to run in API mode when the handler executes it
 ENV COMMANDLINE_ARGS="--api --xformers --listen --port 3000"
