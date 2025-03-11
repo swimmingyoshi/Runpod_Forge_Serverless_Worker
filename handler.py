@@ -71,7 +71,7 @@ def start_webui():
     log_file = open("/workspace/webui.log", "w")
     
     # Start the process with explicit COMMANDLINE_ARGS and redirect output to the log file
-    cmd = ["python3", "launch.py", "--api", "--xformers", "--port", "3000"]
+    cmd = ["python3", "webui.py", "--api", "--xformers", "--port", "3000"]
     print(f"Executing command: {' '.join(cmd)}")
     
     try:
