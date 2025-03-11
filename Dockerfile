@@ -42,7 +42,7 @@ WORKDIR /workspace/stable-diffusion-webui-forge
 RUN pip3 install -r requirements_versions.txt
 
 # Configure to run in API mode when the handler executes it
-ENV COMMANDLINE_ARGS="--api --xformers --listen --port 3000"
+ENV COMMANDLINE_ARGS="--api --xformers --listen --port 3000 --headless"
 
 # Set up the entrypoint
 WORKDIR /workspace

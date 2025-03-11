@@ -7,6 +7,7 @@ import requests
 import subprocess
 import threading
 import shutil
+import sys
 from urllib.parse import urlparse
 
 # Global variables
@@ -51,25 +52,80 @@ def start_webui():
         return
 
     print("Starting WebUI process...")
-    os.chdir("/workspace/stable-diffusion-webui-forge")
-    # Changed 'python' to 'python3' to match Ubuntu's executable name
-    WEBUI_PROCESS = subprocess.Popen(["python3", "launch.py"], env=os.environ)
+    
+    # Print current directory and check if the launch.py file exists
+    webui_dir = "/workspace/stable-diffusion-webui-forge"
+    print(f"Changing to directory: {webui_dir}")
+    if not os.path.exists(webui_dir):
+        print(f"ERROR: WebUI directory {webui_dir} does not exist!")
+        return
+        
+    os.chdir(webui_dir)
+    
+    if not os.path.exists("launch.py"):
+        print("ERROR: launch.py does not exist in the WebUI directory!")
+        print("Files in current directory:", os.listdir("."))
+        return
+    
+    # Create a log file for the WebUI process output
+    log_file = open("/workspace/webui.log", "w")
+    
+    # Start the process with explicit COMMANDLINE_ARGS and redirect output to the log file
+    cmd = ["python3", "launch.py", "--api", "--xformers", "--listen", "--port", "3000"]
+    print(f"Executing command: {' '.join(cmd)}")
+    
+    try:
+        WEBUI_PROCESS = subprocess.Popen(
+            cmd,
+            stdout=log_file,
+            stderr=subprocess.STDOUT,
+            env=os.environ,
+            cwd=webui_dir
+        )
+        print(f"WebUI process started with PID: {WEBUI_PROCESS.pid}")
+    except Exception as e:
+        print(f"Failed to start WebUI process: {e}")
+        return
     
     # Wait for API to become available
-    max_retries = 30
+    max_retries = 60  # Increased from 30 to 60
     for i in range(max_retries):
         try:
+            # Check if process is still running
+            if WEBUI_PROCESS.poll() is not None:
+                exit_code = WEBUI_PROCESS.poll()
+                print(f"ERROR: WebUI process exited with code {exit_code}")
+                print("Last 50 lines of WebUI log:")
+                try:
+                    with open("/workspace/webui.log", "r") as f:
+                        log_lines = f.readlines()
+                        for line in log_lines[-50:]:
+                            print(f"LOG: {line.strip()}")
+                except Exception as e:
+                    print(f"Failed to read log file: {e}")
+                return
+                
             response = requests.get(f"{API_URL}/sd-models")
             if response.status_code == 200:
                 print("WebUI API is ready")
                 return
         except requests.exceptions.ConnectionError:
             pass
+        except Exception as e:
+            print(f"Error checking API: {e}")
         
         print(f"Waiting for WebUI API to become available ({i+1}/{max_retries})...")
         time.sleep(10)
     
-    print("Failed to start WebUI API")
+    print("Failed to start WebUI API within timeout period")
+    print("Last 50 lines of WebUI log:")
+    try:
+        with open("/workspace/webui.log", "r") as f:
+            log_lines = f.readlines()
+            for line in log_lines[-50:]:
+                print(f"LOG: {line.strip()}")
+    except Exception as e:
+        print(f"Failed to read log file: {e}")
 
 def load_model(model_name):
     """Load a specific model in the WebUI."""
@@ -118,6 +174,7 @@ def load_model(model_name):
 def handler(job):
     """Main handler function for RunPod serverless."""
     try:
+        print(f"Starting handler with job input: {job.get('input', {})}")
         job_input = job["input"]
         
         # Handle model download if URL is provided
@@ -133,6 +190,10 @@ def handler(job):
         # Start WebUI if not running
         start_webui()
         
+        # Check if WebUI process is running
+        if WEBUI_PROCESS is None or WEBUI_PROCESS.poll() is not None:
+            return {"error": "WebUI failed to start properly. Check logs for details."}
+        
         # Load model if specified
         if "model_name" in job_input:
             model_load_success = load_model(job_input["model_name"])
@@ -142,6 +203,9 @@ def handler(job):
         # Handle the specific endpoint requested
         endpoint = job_input.get("endpoint", "txt2img")
         payload = job_input.get("payload", {})
+        
+        print(f"Making API request to endpoint: {endpoint}")
+        print(f"With payload: {payload}")
         
         # Make the API request
         response = requests.post(f"{API_URL}/{endpoint}", json=payload)
@@ -153,10 +217,25 @@ def handler(job):
         return response.json()
     
     except Exception as e:
-        return {"error": str(e)}
+        import traceback
+        error_traceback = traceback.format_exc()
+        print(f"Handler error: {e}")
+        print(f"Traceback: {error_traceback}")
+        return {"error": str(e), "traceback": error_traceback}
+
+# Print system information
+print(f"Python version: {sys.version}")
+print(f"Current directory: {os.getcwd()}")
+print(f"Environment variables: {dict(os.environ)}")
 
 # Start the WebUI in a separate thread
-threading.Thread(target=start_webui, daemon=True).start()
+webui_thread = threading.Thread(target=start_webui, daemon=True)
+webui_thread.start()
+print("WebUI thread started")
+
+# Wait for WebUI to initialize before accepting jobs
+time.sleep(10)
+print("Starting RunPod handler")
 
 # Start the RunPod handler
 runpod.serverless.start({"handler": handler})
