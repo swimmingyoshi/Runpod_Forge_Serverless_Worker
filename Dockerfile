@@ -63,7 +63,7 @@ while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do\n\
   fi\n\
   echo "Attempt $((ATTEMPT+1))/$MAX_ATTEMPTS: WebUI not ready yet..."\n\
   ATTEMPT=$((ATTEMPT+1))\n\
-  sleep 10\n\
+  sleep 1000\n\
 done\n\
 \n\
 if [ $ATTEMPT -eq $MAX_ATTEMPTS ]; then\n\
