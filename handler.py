@@ -3,7 +3,10 @@ import os
 import time
 import runpod
 import requests
+<<<<<<< HEAD
 import subprocess
+=======
+>>>>>>> 28e28c1 (.)
 import sys
 from urllib.parse import urlparse
 
@@ -22,12 +25,20 @@ def download_model(url, local_path):
     try:
         os.makedirs(os.path.dirname(local_path), exist_ok=True)
         response = requests.get(url, stream=True)
+        response.raise_for_status()  # Raise exception for bad status codes
+        
         total_size = int(response.headers.get('content-length', 0))
+        downloaded = 0
         
         with open(local_path, 'wb') as f:
             for chunk in response.iter_content(chunk_size=8192):
                 if chunk:
                     f.write(chunk)
+                    downloaded += len(chunk)
+                    # Print progress
+                    if total_size > 0:
+                        percent = (downloaded / total_size) * 100
+                        print(f"Download progress: {percent:.1f}%")
         
         print(f"Model download complete: {local_path}")
         return True
@@ -43,18 +54,27 @@ def get_model_name_from_url(url):
 def check_api_status():
     """Check if the WebUI API is available."""
     try:
+<<<<<<< HEAD
         response = requests.get(f"{API_URL}/sd-models", timeout=5)
         if response.status_code == 200:
             return True
         return False
     except:
+=======
+        response = requests.get(f"{API_URL}/sd-models", timeout=10)
+        if response.status_code == 200:
+            return True
+        return False
+    except Exception as e:
+        print(f"API check failed: {e}")
+>>>>>>> 28e28c1 (.)
         return False
 
 def load_model(model_name):
     """Load a specific model in the WebUI."""
     try:
         # Get current model
-        response = requests.get(f"{API_URL}/sd-models")
+        response = requests.get(f"{API_URL}/sd-models", timeout=30)
         models = response.json()
         
         # Find the requested model
@@ -66,10 +86,11 @@ def load_model(model_name):
         
         if not model_info:
             print(f"Model {model_name} not found in available models")
+            print(f"Available models: {[m['title'] for m in models]}")
             return False
             
         # Check if model is already loaded
-        options_response = requests.get(f"{API_URL}/options")
+        options_response = requests.get(f"{API_URL}/options", timeout=30)
         current_model = options_response.json().get("sd_model_checkpoint")
         
         if current_model == model_info["title"]:
@@ -80,11 +101,14 @@ def load_model(model_name):
         print(f"Loading model: {model_info['title']}")
         response = requests.post(
             f"{API_URL}/options", 
-            json={"sd_model_checkpoint": model_info["title"]}
+            json={"sd_model_checkpoint": model_info["title"]},
+            timeout=120  # Loading models can take time
         )
         
         if response.status_code == 200:
             print(f"Model {model_name} loaded successfully")
+            # Wait a bit for model to fully load
+            time.sleep(5)
             return True
         else:
             print(f"Failed to load model: {response.text}")
@@ -98,7 +122,18 @@ def handler(job):
     """Main handler function for RunPod serverless."""
     try:
         print(f"Starting handler with job input: {job.get('input', {})}")
-        job_input = job["input"]
+        job_input = job.get("input", {})
+        
+        # Verify WebUI API is running before proceeding
+        max_retries = 5
+        for i in range(max_retries):
+            if check_api_status():
+                print("WebUI API is available and ready")
+                break
+            print(f"Waiting for WebUI API ({i+1}/{max_retries})...")
+            time.sleep(5)
+        else:
+            return {"error": "WebUI API is not available after multiple attempts. Please check the container logs."}
         
         # Verify WebUI API is running before proceeding
         if not check_api_status():
@@ -154,6 +189,7 @@ def handler(job):
 # Print system information
 print(f"Python version: {sys.version}")
 print(f"Current directory: {os.getcwd()}")
+<<<<<<< HEAD
 
 # Wait for WebUI to be available (should already be running via start.sh)
 max_retries = 5
@@ -169,3 +205,11 @@ else:
 # Start the RunPod handler
 print("Starting RunPod handler")
 runpod.serverless.start({"handler": handler})
+=======
+print(f"MODEL_DIR: {MODEL_DIR}")
+print(f"API_URL: {API_URL}")
+
+# Start the RunPod handler
+print("Starting RunPod handler")
+runpod.serverless.start({"handler": handler})
+>>>>>>> 28e28c1 (.)

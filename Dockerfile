@@ -18,15 +18,21 @@ RUN apt-get update && apt-get install -y \
     libxrender1 \
     libxext6 \
     libgomp1 \
+    ffmpeg \
+    libopencv-dev \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
 # Create a working directory
 WORKDIR /workspace
 
+# Install Python dependencies first
+RUN pip3 install --no-cache-dir runpod requests
+
 # Clone the Stable Diffusion WebUI Forge repository
 RUN git clone https://github.com/lllyasviel/stable-diffusion-webui-forge.git
 
+<<<<<<< HEAD
 # Install Python dependencies first
 RUN pip3 install --no-cache-dir runpod requests torch==2.0.1+cu118 torchvision==0.15.2+cu118 \
     -f https://download.pytorch.org/whl/torch_stable.html
@@ -34,6 +40,16 @@ RUN pip3 install --no-cache-dir runpod requests torch==2.0.1+cu118 torchvision==
 # Install WebUI dependencies
 WORKDIR /workspace/stable-diffusion-webui-forge
 RUN pip3 install --no-cache-dir -r requirements_versions.txt xformers
+=======
+# Install PyTorch with CUDA support
+WORKDIR /workspace/stable-diffusion-webui-forge
+RUN pip3 install --no-cache-dir torch==2.0.1+cu118 torchvision==0.15.2+cu118 \
+    --extra-index-url https://download.pytorch.org/whl/cu118
+
+# Install WebUI dependencies
+RUN pip3 install --no-cache-dir -r requirements_versions.txt
+RUN pip3 install --no-cache-dir xformers==0.0.21
+>>>>>>> 28e28c1 (.)
 
 # Pre-download a model
 RUN mkdir -p /workspace/stable-diffusion-webui-forge/models/Stable-diffusion
@@ -43,6 +59,7 @@ RUN wget -q -O /workspace/stable-diffusion-webui-forge/models/Stable-diffusion/M
 # Copy the handler
 WORKDIR /workspace
 COPY handler.py /workspace/handler.py
+<<<<<<< HEAD
 
 # Add this script to check and initialize the webui before running the handler
 RUN echo '#!/bin/bash\n\
@@ -81,3 +98,13 @@ ENV COMMANDLINE_ARGS="--api --xformers --listen --port 3000"
 
 # Use the startup script as the entrypoint
 ENTRYPOINT ["/workspace/start.sh"]
+=======
+COPY start.sh /workspace/start.sh
+RUN chmod +x /workspace/start.sh
+
+# Set environment variables for the WebUI
+ENV COMMANDLINE_ARGS="--api --xformers --listen --port 3000 --skip-torch-cuda-test"
+
+# Use the startup script as the entrypoint
+ENTRYPOINT ["/workspace/start.sh"]
+>>>>>>> 28e28c1 (.)
