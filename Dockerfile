@@ -77,7 +77,7 @@ exec python3 -u handler.py\n\
 ' > /workspace/start.sh && chmod +x /workspace/start.sh
 
 # Set environment variables for the WebUI
-ENV COMMANDLINE_ARGS="--api --xformers --listen --port 3000 --headless"
+ENV COMMANDLINE_ARGS="--api --xformers --listen --port 3000"
 
 # Use the startup script as the entrypoint
 ENTRYPOINT ["/workspace/start.sh"]
