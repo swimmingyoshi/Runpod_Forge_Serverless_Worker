@@ -54,20 +54,12 @@ def get_model_name_from_url(url):
 def check_api_status():
     """Check if the WebUI API is available."""
     try:
-<<<<<<< HEAD
-        response = requests.get(f"{API_URL}/sd-models", timeout=5)
-        if response.status_code == 200:
-            return True
-        return False
-    except:
-=======
         response = requests.get(f"{API_URL}/sd-models", timeout=10)
         if response.status_code == 200:
             return True
         return False
     except Exception as e:
         print(f"API check failed: {e}")
->>>>>>> 28e28c1 (.)
         return False
 
 def load_model(model_name):
@@ -189,27 +181,9 @@ def handler(job):
 # Print system information
 print(f"Python version: {sys.version}")
 print(f"Current directory: {os.getcwd()}")
-<<<<<<< HEAD
-
-# Wait for WebUI to be available (should already be running via start.sh)
-max_retries = 5
-for i in range(max_retries):
-    if check_api_status():
-        print("WebUI API is available and ready")
-        break
-    print(f"Waiting for WebUI API ({i+1}/{max_retries})...")
-    time.sleep(5)
-else:
-    print("WARNING: WebUI API not detected. Handler may not work correctly.")
-
-# Start the RunPod handler
-print("Starting RunPod handler")
-runpod.serverless.start({"handler": handler})
-=======
 print(f"MODEL_DIR: {MODEL_DIR}")
 print(f"API_URL: {API_URL}")
 
 # Start the RunPod handler
 print("Starting RunPod handler")
 runpod.serverless.start({"handler": handler})
->>>>>>> 28e28c1 (.)
